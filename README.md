@@ -11,8 +11,20 @@ go get github.com/lunny/xorm
 go get https://github.com/matyhtf/easygo
 ```
 
-Create Project
+环境配置
+-----
+如果已设置过GOPATH，则跳过此步骤。
+```
+vi ~/.bashrc
+export GOPATH=$HOME/your_code_path
+export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 ```
 
-
+新建项目
+-----
 ```
+cd workspace/your_project_dir
+easygo new TestGo
+cd TestGo
+```
+

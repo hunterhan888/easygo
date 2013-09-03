@@ -114,9 +114,19 @@ class GoPHP
 					}
 					if(!isset($this->buffer[$taskId][$task[2]]))
 					{
-						$this->buffer[$taskId][$task[2]] = array();
+						$this->buffer[$taskId][$task[2]] = $json_data;
 					}
-					$this->buffer[$taskId][$task[2]] += $json_data;
+					else 
+					{
+						if(is_array($json_data))
+						{
+							$this->buffer[$taskId][$task[2]] += $json_data;
+						}
+						else 
+						{
+							$this->buffer[$taskId][$task[2]] = $json_data;
+						}
+					}
 // 					$this->log($this->buffer);
 					$this->success();
 					break;
