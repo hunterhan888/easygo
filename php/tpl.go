@@ -2,19 +2,16 @@ package php
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"math/rand"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
-//	"syscall"
-	"time"
-	"path/filepath"
 )
 
 const DATA_EOF = "\r\n"
@@ -26,7 +23,7 @@ type Worker struct {
 	Cmd       *exec.Cmd
 	Stdout    io.ReadCloser
 	Stdin     io.WriteCloser
-	Engine   *Engine
+	Engine    *Engine
 	sync.Mutex
 }
 
@@ -40,6 +37,11 @@ type Engine struct {
 type Task struct {
 	Worker *Worker
 	Id     int
+}
+
+type TaskError struct {
+	Msg  string
+	Code int
 }
 
 func NewTask(e *Engine) *Task {
@@ -59,11 +61,6 @@ func NewTask(e *Engine) *Task {
 	t.Id = w.TaskN
 	w.Unlock()
 	return t
-}
-
-type TaskError struct {
-	Msg string
-	Code int
 }
 
 func (e TaskError) Error() string {
@@ -102,8 +99,8 @@ func (t *Task) Assign(name string, data interface{}) error {
 
 	if err != nil || string(ret[0:n]) != "OK" {
 		t.Worker.Unlock()
-		return TaskError {
-			Msg : string(ret[0:n]),
+		return TaskError{
+			Msg: string(ret[0:n]),
 		}
 	}
 	t.Worker.Unlock()
@@ -149,13 +146,18 @@ func NewEngine(worker_num int, php_cli, tpl_path string) *Engine {
 	tpl.C = make(chan int, 100)
 	tpl.PhpFile, _ = filepath.Abs(os.Getenv("GOPATH") + "/" + SRC_PATH + "/php/tpl.php")
 	tpl.TplPath = tpl_path
-	log.Println(tpl.PhpFile)
+	log.Println("PHP Engine Start.File=" + tpl.PhpFile)
 	return tpl
 }
 
+/**
+ * worker进程管理，挂掉的worker重新拉起
+ */
 func (t *Engine) EngineLoop() {
 	for {
+		//等待worker结束事件
 		workerId := <-t.C
+		//重新拉起新的Worker
 		t.Workers[workerId].Run()
 	}
 }
@@ -175,28 +177,23 @@ func (w *Worker) Run() {
 	if err != nil {
 		log.Fatal("Start", err)
 	}
-	w.Cmd.Output()
+	go w.Wait()
 }
 
-func (w *Worker) Wait(t *Engine) {
+func (w *Worker) Wait() {
 	err := w.Cmd.Wait()
-	t.C <- w.Id
+	w.Engine.C <- w.Id
 	if err != nil {
 		log.Println("Wait Error:", err)
 	}
 }
 
 func (t *Engine) Init() {
-	t.Workers = make([] *Worker, t.WorkerNum)
+	t.Workers = make([]*Worker, t.WorkerNum)
 	//创建worker进程
 	for i := 0; i < t.WorkerNum; i++ {
 		w := NewWorker(t, i)
 		t.Workers[i] = w
 		w.Run()
 	}
-}
-
-func un() {
-	time.Sleep(1)
-	fmt.Println("hello")
 }
