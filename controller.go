@@ -1,4 +1,4 @@
-package web
+package easygo
 
 import (
 	"fmt"
@@ -8,8 +8,7 @@ import (
 	"log"
 	"net/http"
 	//"time"
-	"../php"
-	"./seajs"
+	"github.com/matyhtf/easygo/php"
 	"encoding/json"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/lunny/xorm"
@@ -36,10 +35,8 @@ type Controller struct {
 	layoutFn    string
 	Layout      Layout
 	jsonEncoder *json.Encoder
-	Sea         seajs.SeaContext
 	Session     *SessionType
 	DB          *xorm.Engine
-	
 	tpl         *php.Task
 }
 
@@ -50,9 +47,6 @@ func NewController() *Controller {
 	c.Layout.Fn = "template/layout/main.html.mustache"
 	c.Layout.HeaderScript = []string{}
 	c.jsonEncoder = json.NewEncoder(c.Resp)
-	c.Sea = seajs.SeaContext{}
-	c.Sea.ModuleDir = "/static/js"
-	c.Sea.AppDir = "/static/js/app/pages"
 	return c
 }
 
@@ -92,12 +86,6 @@ func (c Controller) IsLogin() bool {
 	return flag
 }
 
-//注册脚本, 用于注入到模板中去
-func (c *Controller) RegisterScript(script string) {
-	c.Layout.HeaderScript = append(c.Layout.HeaderScript, script)
-	return
-}
-
 func (c Controller) Redirect(url string) {
 	http.Redirect(c.Resp, c.Req, url, 302)
 }
@@ -123,7 +111,13 @@ func (c Controller) Render(tpl string) {
 }
 
 func (c Controller) Assign(name string, data interface{}) bool {
-	return c.tpl.Assign(name, data)
+	err := c.tpl.Assign(name, data)
+	if err == nil {
+		return true
+	} else {
+		log.Println(err.Error())
+		return false
+	}
 }
 
 func (c *Controller) Echo(str string) {

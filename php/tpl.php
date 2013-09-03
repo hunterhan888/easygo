@@ -1,10 +1,12 @@
 <?php
-
 class GoPHP 
 {
 	//使用\r\n表示结束
 	const DATA_EOF = "\r\n";
 	const TASK_EOF = "\r\n\r\n";
+	
+	const MSG_OK = "OK";
+	const MSG_ERR = "ERR";
 	
 	protected $stdin;
 	protected $request_count = 1000;
@@ -16,7 +18,12 @@ class GoPHP
 	
 	function __construct()
 	{
-		$this->root = realpath(__DIR__.'/../../../template').'/';
+		global $argv;
+		if(empty($argv[1]))
+		{
+			throw new Exception("Require template path.");
+		}
+		$this->root = trim($argv[1]).'/';
 		$this->stdin = fopen("php://stdin", "r");
 	}
 	
@@ -111,7 +118,7 @@ class GoPHP
 					}
 					$this->buffer[$taskId][$task[2]] += $json_data;
 // 					$this->log($this->buffer);
-					echo 'ok';
+					$this->success();
 					break;
 				case 'render':
 					$ret = $this->onTask($taskId, trim($task[2]));
@@ -132,9 +139,19 @@ class GoPHP
 			continue;
 			//$request_count--;
 			fail:
-			echo "ERR={$this->errCode}|MSG={$this->errMsg}".self::DATA_EOF;
+			$this->fail();
 			$data = '';
 		}
+	}
+	
+	function success()
+	{
+		echo self::MSG_OK;
+	}
+	
+	function fail()
+	{
+		echo self::MSG_ERR."|CODE={$this->errCode}|MSG={$this->errMsg}".self::TASK_EOF;
 	}
 }
 

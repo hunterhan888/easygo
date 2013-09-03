@@ -1,32 +1,25 @@
 package php
 
-/*
-#include <signal.h>
-void IgnoreSignal(int signum)
-{
-	signal(signum, SIG_IGN);
-}
-*/
-import "C"
-
 import (
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"math/rand"
-	//	"os"
+	"os"
 	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
+//	"syscall"
 	"time"
+	"path/filepath"
 )
 
 const DATA_EOF = "\r\n"
 const TASK_EOF = "\r\n\r\n"
+const SRC_PATH = "src/github.com/matyhtf/easygo"
 
 type Worker struct {
 	Id, TaskN int
@@ -39,7 +32,7 @@ type Worker struct {
 
 type Engine struct {
 	WorkerNum                int
-	PhpCli, Basedir, PhpFile string
+	PhpCli, PhpFile, TplPath string
 	Workers                  []*Worker
 	C                        chan int
 }
@@ -68,14 +61,23 @@ func NewTask(e *Engine) *Task {
 	return t
 }
 
-func NewWorker(e *Engine, id int) *Worker{
+type TaskError struct {
+	Msg string
+	Code int
+}
+
+func (e TaskError) Error() string {
+	return e.Msg
+}
+
+func NewWorker(e *Engine, id int) *Worker {
 	w := new(Worker)
 	w.Id = id
 	w.Engine = e
 	return w
 }
 
-func (t *Task) Assign(name string, data interface{}) bool {
+func (t *Task) Assign(name string, data interface{}) error {
 	var (
 		err     error
 		n       int
@@ -84,8 +86,7 @@ func (t *Task) Assign(name string, data interface{}) bool {
 	)
 	jsonStr, err = json.Marshal(data)
 	if err != nil {
-		panic(err)
-		return false
+		return err
 	}
 	sendStr = strconv.Itoa(t.Id) + "|assign|" + name + "|" + string(jsonStr) + DATA_EOF
 	t.Worker.Lock()
@@ -99,13 +100,14 @@ func (t *Task) Assign(name string, data interface{}) bool {
 	ret := make([]byte, 8192)
 	n, err = t.Worker.Stdout.Read(ret)
 
-	if err != nil || string(ret[0:n]) != "ok" {
+	if err != nil || string(ret[0:n]) != "OK" {
 		t.Worker.Unlock()
-		return false
+		return TaskError {
+			Msg : string(ret[0:n]),
+		}
 	}
-
 	t.Worker.Unlock()
-	return true
+	return nil
 }
 
 func (t *Task) Render(tpl string) (string, error) {
@@ -140,13 +142,13 @@ func (t *Task) Render(tpl string) (string, error) {
 	return strings.TrimSpace(retString), nil
 }
 
-func NewEngine(worker_num int, php_cli, basedir string) *Engine {
+func NewEngine(worker_num int, php_cli, tpl_path string) *Engine {
 	tpl := new(Engine)
 	tpl.WorkerNum = worker_num
 	tpl.PhpCli = php_cli
-	tpl.Basedir = basedir
 	tpl.C = make(chan int, 100)
-	tpl.PhpFile = basedir + "/lib/php/tpl.php"
+	tpl.PhpFile, _ = filepath.Abs(os.Getenv("GOPATH") + "/" + SRC_PATH + "/php/tpl.php")
+	tpl.TplPath = tpl_path
 	log.Println(tpl.PhpFile)
 	return tpl
 }
@@ -159,9 +161,8 @@ func (t *Engine) EngineLoop() {
 }
 
 func (w *Worker) Run() {
-	C.IgnoreSignal(C.int(syscall.SIGPIPE))
 	var err error
-	w.Cmd = exec.Command(w.Engine.PhpCli, "-f", w.Engine.PhpFile)
+	w.Cmd = exec.Command(w.Engine.PhpCli, "-f", w.Engine.PhpFile, w.Engine.TplPath)
 	w.Stdin, err = w.Cmd.StdinPipe()
 	if err != nil {
 		log.Fatal("StdinPipe Error:", err)
@@ -174,6 +175,7 @@ func (w *Worker) Run() {
 	if err != nil {
 		log.Fatal("Start", err)
 	}
+	w.Cmd.Output()
 }
 
 func (w *Worker) Wait(t *Engine) {
@@ -186,7 +188,6 @@ func (w *Worker) Wait(t *Engine) {
 
 func (t *Engine) Init() {
 	t.Workers = make([] *Worker, t.WorkerNum)
-	C.IgnoreSignal(C.int(syscall.SIGPIPE))
 	//创建worker进程
 	for i := 0; i < t.WorkerNum; i++ {
 		w := NewWorker(t, i)

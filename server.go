@@ -1,7 +1,7 @@
-package web
+package easygo
 
 import (
-	"../php"
+	"github.com/matyhtf/easygo/php"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/lunny/xorm"
 	"log"
@@ -58,7 +58,7 @@ func (s *ServerType) init() {
 	}
 	s.DB.ShowSQL = s.MYSQL_DEBUG
 	//php模板引擎
-	s.PHP = php.NewEngine(1, "/usr/bin/php", s.Root)
+	s.PHP = php.NewEngine(1, "/usr/bin/php", s.Root + "/apps/template")
 	s.PHP.Init()
 	
 	go s.PHP.EngineLoop()

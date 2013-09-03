@@ -1,8 +1,8 @@
-package web
+package easygo
 
 import (
 	//	"../../apps"
-	"../php"
+	"github.com/matyhtf/easygo/php"
 	"bytes"
 	"log"
 	"net/http"
