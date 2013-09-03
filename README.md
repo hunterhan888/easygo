@@ -25,6 +25,15 @@ export PATH=$GOPATH/bin:$GOROOT/bin:$PATH
 ```
 cd workspace/your_project_dir
 easygo new TestGo
-cd TestGo
 ```
+
+运行程序
+-----
+```
+cd TestGo
+go run main.go dev
+```
+
+打开浏览器 http://localhost:8888/
+
 
