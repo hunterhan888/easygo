@@ -40,6 +40,8 @@ type ServerType struct {
 	
 	DefaultController  string
 	DefaultAction      string
+	
+	PHP_WORKER_NUM    int
 }
 
 func (s *ServerType) init() {
@@ -58,7 +60,7 @@ func (s *ServerType) init() {
 	}
 	s.DB.ShowSQL = s.MYSQL_DEBUG
 	//php模板引擎
-	s.PHP = php.NewEngine(1, "/usr/bin/php", s.Root + "/apps/template")
+	s.PHP = php.NewEngine(s.PHP_WORKER_NUM, "/usr/bin/php", s.Root + "/apps/template")
 	s.PHP.Init()
 	
 	go s.PHP.EngineLoop()

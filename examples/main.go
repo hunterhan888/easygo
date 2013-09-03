@@ -31,6 +31,8 @@ func main() {
 	server.MYSQL_DSN_DEV = "root:root@tcp(localhost:3306)/test?charset=utf8"
 	server.MYSQL_DSN = "root:passwd@tcp(localhost:3306)/test?charset=utf8"
 	server.MYSQL_DEBUG = false
+	
+	server.PHP_WORKER_NUM = 1 
 
 	server.SessionKey = "GOSESSID"
 	server.SessionDir = "/tmp/gosess"
