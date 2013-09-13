@@ -43,16 +43,20 @@ class GoPHP
 	function onTask($taskId, $tpl)
 	{
 		$file = $this->root.$tpl;
-		if(is_array($this->buffer[$taskId]))
+		if(!empty($this->buffer[$taskId]))
 		{
-			if(isset($this->buffer[$taskId]['.']))
+			if(is_array($this->buffer[$taskId]))
 			{
-				extract($this->buffer[$taskId]['.']);
-				unset($this->buffer[$taskId]['.']);
+				if(isset($this->buffer[$taskId]['.']))
+				{
+					extract($this->buffer[$taskId]['.']);
+					unset($this->buffer[$taskId]['.']);
+				}
+				extract($this->buffer[$taskId]);
 			}
-			extract($this->buffer[$taskId]);
+			$this->log($this->buffer[$taskId]);
 		}
-		$this->log($this->buffer[$taskId]);
+		
 		if(!is_file($file))
 		{
 			$this->errCode = 4;

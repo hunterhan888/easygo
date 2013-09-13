@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
+//	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -87,35 +87,30 @@ func (t *Task) Assign(name string, data interface{}) error {
 	}
 	sendStr = strconv.Itoa(t.Id) + "|assign|" + name + "|" + string(jsonStr) + DATA_EOF
 	t.Worker.Lock()
+	defer t.Worker.Unlock()
 	_, err = t.Worker.Stdin.Write([]byte(sendStr))
 	if err != nil {
-		t.Worker.Unlock()
-		runtime.Gosched()
-		return t.Assign(name, data)
+		return err
 	}
-
 	ret := make([]byte, 8192)
 	n, err = t.Worker.Stdout.Read(ret)
 
 	if err != nil || string(ret[0:n]) != "OK" {
-		t.Worker.Unlock()
 		return TaskError{
 			Msg: string(ret[0:n]),
 		}
 	}
-	t.Worker.Unlock()
 	return nil
 }
 
 func (t *Task) Render(tpl string) (string, error) {
 	t.Worker.Lock()
+	defer t.Worker.Unlock()
 	var retString string = ""
 	var err error
 	_, err = t.Worker.Stdin.Write([]byte(strconv.Itoa(t.Id) + "|render|" + tpl + DATA_EOF))
 	if err != nil {
-		t.Worker.Unlock()
-		runtime.Gosched()
-		return t.Render(tpl)
+		return "", err
 	}
 
 	var ret []byte = make([]byte, 8192)
@@ -124,9 +119,7 @@ func (t *Task) Render(tpl string) (string, error) {
 		n, err = t.Worker.Stdout.Read(ret)
 		if err != nil {
 			if len(retString) == 0 {
-				t.Worker.Unlock()
-				runtime.Gosched()
-				return t.Render(tpl)
+				return "", err
 			}
 		}
 		retString += string(ret[:n])
@@ -135,7 +128,6 @@ func (t *Task) Render(tpl string) (string, error) {
 			break
 		}
 	}
-	t.Worker.Unlock()
 	return strings.TrimSpace(retString), nil
 }
 

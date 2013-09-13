@@ -110,6 +110,17 @@ func (c Controller) Render(tpl string) {
 	}
 }
 
+func (c *Controller) CookieSet(cookie *http.Cookie) {
+	http.SetCookie(c.Resp, cookie)
+}
+
+func (c *Controller) CookieDel(key string) {
+	var cookie http.Cookie
+	cookie.Name = key
+	cookie.Value = ""
+	http.SetCookie(c.Resp, &cookie)
+}
+
 func (c Controller) Assign(name string, data interface{}) bool {
 	err := c.tpl.Assign(name, data)
 	if err == nil {
