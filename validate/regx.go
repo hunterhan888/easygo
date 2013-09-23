@@ -7,7 +7,7 @@ import (
 var regx_char *regexp.Regexp
 
 func init() {
-	regx_char = regexp.MustCompile("[a-zA-Z]+")
+	regx_char = regexp.MustCompile(`[a-zA-Z]+`)
 }
 
 func IsChar(s string) bool {

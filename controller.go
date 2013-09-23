@@ -71,13 +71,13 @@ func (c *Controller) OnFinish() {
 	c.Session.Save()
 }
 
-func (c Controller) Init() {
+func (c *Controller) Init() {
 }
 
-func (c Controller) Destroy() {
+func (c *Controller) Destroy() {
 }
 
-func (c Controller) IsLogin() bool {
+func (c *Controller) IsLogin() bool {
 	var flag = true
 	i := c.Session.Get("userId")
 	if i == "" {
@@ -86,11 +86,11 @@ func (c Controller) IsLogin() bool {
 	return flag
 }
 
-func (c Controller) Redirect(url string) {
+func (c *Controller) Redirect(url string) {
 	http.Redirect(c.Resp, c.Req, url, 302)
 }
 
-func (c Controller) Display(tpl string, data interface{}) error {
+func (c *Controller) Display(tpl string, data interface{}) error {
 	bytes, err := ioutil.ReadFile(tpl)
 	if err != nil {
 		return err
@@ -100,7 +100,7 @@ func (c Controller) Display(tpl string, data interface{}) error {
 }
 
 
-func (c Controller) Render(tpl string) {
+func (c *Controller) Render(tpl string) {
 	c.Header("Content-Type", "text/html;charset="+Server.Charset)
 	str, err := c.tpl.Render(tpl)
 	if err != nil {
@@ -121,7 +121,7 @@ func (c *Controller) CookieDel(key string) {
 	http.SetCookie(c.Resp, &cookie)
 }
 
-func (c Controller) Assign(name string, data interface{}) bool {
+func (c *Controller) Assign(name string, data interface{}) bool {
 	err := c.tpl.Assign(name, data)
 	if err == nil {
 		return true
@@ -129,6 +129,10 @@ func (c Controller) Assign(name string, data interface{}) bool {
 		log.Println(err.Error())
 		return false
 	}
+}
+
+func (c *Controller) GetIP() string {
+	return c.Req.RemoteAddr
 }
 
 func (c *Controller) Echo(str string) {
@@ -143,7 +147,7 @@ func (c *Controller) Header(key string, value string) {
 	c.Resp.Header().Add(key, value)
 }
 
-func (c Controller) EchoJson(data interface{}) {
+func (c *Controller) EchoJson(data interface{}) {
 	b, err := json.Marshal(data)
 	if err != nil {
 		log.Println(err.Error())
@@ -157,7 +161,7 @@ func (c *Controller) OnAction(action string) {
 
 }
 
-func (c Controller) EchoApiError(m string) {
+func (c *Controller) EchoApiError(m string) {
 	var data = map[string]string{
 		"Status": "Error",
 		"Msg":    m,
@@ -170,7 +174,7 @@ func (c Controller) EchoApiError(m string) {
 	}
 }
 
-func (c Controller) EchoApiData(data interface{}) {
+func (c *Controller) EchoApiData(data interface{}) {
 	var dataString string
 	b, err := json.Marshal(data)
 	if err != nil {
@@ -191,11 +195,11 @@ func (c Controller) EchoApiData(data interface{}) {
 	}
 }
 
-func (c Controller) RenderJson(context ...interface{}) {
+func (c *Controller) RenderJson(context ...interface{}) {
 	c.jsonEncoder.Encode(context)
 }
 
-func (c Controller) Form(key string) string {
+func (c *Controller) Form(key string) string {
 	return c.Req.FormValue(key)
 }
 
