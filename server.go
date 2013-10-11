@@ -3,6 +3,7 @@ package easygo
 import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/Unknwon/goconfig"
 	"github.com/lunny/xorm"
 	"github.com/matyhtf/easygo/php"
 	"log"
@@ -49,12 +50,7 @@ type ServerType struct {
 }
 
 func (s *ServerType) init() {
-	//开发环境使用LOCAL数据库
-	if s.Env == "dev" {
-		s.DB, err = xorm.NewEngine("mysql", s.MYSQL_DSN_DEV)
-	} else {
-		s.DB, err = xorm.NewEngine("mysql", s.MYSQL_DSN)
-	}
+	s.DB, err = xorm.NewEngine("mysql", s.MYSQL_DSN)
 	if err != nil {
 		panic(err)
 	}
@@ -195,6 +191,34 @@ func ScanMethod(t reflect.Type) map[string]int {
 		}
 	}
 	return methods
+}
+
+func (s *ServerType) LoadConfig(file string) error {
+
+	conf, err := goconfig.LoadConfigFile(file)
+	if err != nil {
+		return err
+	}
+	
+	s.Debug = conf.MustBool("server", "debug")
+	s.Host = conf.MustValue("server", "host") + ":" + conf.MustValue("server", "port")
+	
+	s.MYSQL_DSN = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s", 
+		conf.MustValue("database", "user"),
+		conf.MustValue("database", "password"),
+		conf.MustValue("database", "host"),
+		conf.MustValue("database", "port"),
+		conf.MustValue("database", "db"),
+		conf.MustValue("database", "charset"))
+	s.MYSQL_DEBUG = conf.MustBool("database", "debug")
+
+	s.PHP_WORKER_NUM = conf.MustInt("php", "worker_num")
+	s.PHP_CLI = "php" //或者填写绝对路径
+
+	s.SessionKey = conf.MustValue("session", "key")
+	s.SessionDir = conf.MustValue("session", "dir")
+	s.SessionLifetime = conf.MustInt("session", "lifetime")
+	return nil
 }
 
 func exit() {

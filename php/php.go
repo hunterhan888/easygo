@@ -4,11 +4,24 @@ import (
 	"strings"
 //	"strconv"
 	"os"
+	"bufio"
 	"fmt"
 )
 
 func Explode(sep string, data string, n int) []string {
 	return strings.SplitN(data, sep, n)
+}
+
+func File_put_contents(outfile string, data string) error {
+	file, err := os.Create(outfile)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	writer := bufio.NewWriter(file)
+	writer.WriteString(data)
+	writer.Flush()
+	return err
 }
 
 func Uniqid() (string, error) {
