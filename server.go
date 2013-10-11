@@ -2,8 +2,8 @@ package easygo
 
 import (
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/Unknwon/goconfig"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/lunny/xorm"
 	"github.com/matyhtf/easygo/php"
 	"log"
@@ -32,13 +32,15 @@ type ServerType struct {
 	Host               string
 	MYSQL_DEBUG, Debug bool
 	Root, Env          string
+	LogFile            string
 	DB                 *xorm.Engine
 	SessionKey         string
 	SessionDir         string
 	SessionLifetime    int
-	PHP                *php.Engine
-	MYSQL_DSN          string
-	MYSQL_DSN_DEV      string
+
+	PHP           *php.Engine
+	MYSQL_DSN     string
+	MYSQL_DSN_DEV string
 
 	Charset string
 
@@ -64,12 +66,20 @@ func (s *ServerType) init() {
 		s.PHP_CLI = DEFAULT_PHP_CLI
 	}
 
+	if s.LogFile != "" {
+		logFile, err := os.OpenFile(s.LogFile, os.O_RDWR|os.O_CREATE, 0666)
+		if err != nil {
+			panic(err)
+		}
+		log.SetOutput(logFile)
+	}
+
 	if s.PHP_WORKER_NUM == 0 {
 		s.PHP_WORKER_NUM = DEFAULT_PHP_WORKER_NUM
 	}
 
 	//php模板引擎
-	s.PHP = php.NewEngine(s.PHP_WORKER_NUM, s.PHP_CLI, s.Root+"/apps/template")
+	s.PHP = php.NewEngine(s.PHP_WORKER_NUM, s.PHP_CLI, s.Root+"/static/template")
 	s.PHP.Init()
 
 	go s.PHP.EngineLoop()
@@ -86,16 +96,20 @@ func (s *ServerType) init() {
 }
 
 func (s *ServerType) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
-	//	defer func() {
-	//		if err := recover(); err != nil {
-	//			log.Println("Error: ", err)
-	//			if str, ok := err.(string); ok {
-	//				http.Error(resp, str, 404)
-	//			} else if err, ok := err.(error); ok {
-	//				http.Error(resp, err.Error(), 404)
-	//			}
-	//		}
-	//	}()
+
+	//开发环境需要打印堆栈信息
+	if s.Env != "dev" {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Println("Error: ", err)
+				if str, ok := err.(string); ok {
+					http.Error(resp, str, 404)
+				} else if err, ok := err.(error); ok {
+					http.Error(resp, err.Error(), 404)
+				}
+			}
+		}()
+	}
 
 	log.Println(req.Method, req.RemoteAddr, req.URL.Path)
 
@@ -148,7 +162,7 @@ func (s *ServerType) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 }
 
 func (s *ServerType) Start() {
-	log.Println("Go web application erver start.", s.Host)
+	log.Println("EasyGo web application start. Bind", s.Host)
 	s.init()
 	http.Handle("/", s)
 	err := http.ListenAndServe(s.Host, nil)
@@ -199,25 +213,30 @@ func (s *ServerType) LoadConfig(file string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	s.Debug = conf.MustBool("server", "debug")
 	s.Host = conf.MustValue("server", "host") + ":" + conf.MustValue("server", "port")
-	
-	s.MYSQL_DSN = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s", 
+
+	s.LogFile = conf.MustValue("server", "log_file")
+
+	s.MYSQL_DSN = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s",
 		conf.MustValue("database", "user"),
 		conf.MustValue("database", "password"),
 		conf.MustValue("database", "host"),
 		conf.MustValue("database", "port"),
 		conf.MustValue("database", "db"),
 		conf.MustValue("database", "charset"))
+
 	s.MYSQL_DEBUG = conf.MustBool("database", "debug")
 
 	s.PHP_WORKER_NUM = conf.MustInt("php", "worker_num")
-	s.PHP_CLI = "php" //或者填写绝对路径
+	//或者填写绝对路径
+	s.PHP_CLI = conf.MustValue("php", "cli")
 
 	s.SessionKey = conf.MustValue("session", "key")
 	s.SessionDir = conf.MustValue("session", "dir")
 	s.SessionLifetime = conf.MustInt("session", "lifetime")
+
 	return nil
 }
 
