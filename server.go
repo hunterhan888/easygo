@@ -49,6 +49,7 @@ type ServerType struct {
 
 	PHP_WORKER_NUM int
 	PHP_CLI        string
+	PHP_TPL_DIR  string
 }
 
 func (s *ServerType) init() {
@@ -77,9 +78,13 @@ func (s *ServerType) init() {
 	if s.PHP_WORKER_NUM == 0 {
 		s.PHP_WORKER_NUM = DEFAULT_PHP_WORKER_NUM
 	}
+	
+	if s.PHP_TPL_DIR == "" {
+		s.PHP_TPL_DIR = s.Root + "/static/template/"
+	}
 
 	//php模板引擎
-	s.PHP = php.NewEngine(s.PHP_WORKER_NUM, s.PHP_CLI, s.Root+"/static/template")
+	s.PHP = php.NewEngine(s.PHP_WORKER_NUM, s.PHP_CLI, s.PHP_TPL_DIR)
 	s.PHP.Init()
 
 	go s.PHP.EngineLoop()
@@ -232,6 +237,8 @@ func (s *ServerType) LoadConfig(file string) error {
 	s.PHP_WORKER_NUM = conf.MustInt("php", "worker_num")
 	//或者填写绝对路径
 	s.PHP_CLI = conf.MustValue("php", "cli")
+	//模板文件的路径
+	s.PHP_TPL_DIR = conf.MustValue("php", "tpl_dir")
 
 	s.SessionKey = conf.MustValue("session", "key")
 	s.SessionDir = conf.MustValue("session", "dir")
