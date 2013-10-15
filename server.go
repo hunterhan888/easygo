@@ -38,15 +38,15 @@ type ServerType struct {
 	MYSQL_DEBUG, Debug bool
 	Root, Env          string
 	LogFile            string
-	DB                 *xorm.Engine
-	Charset            string
+
+	Charset string
 	//session
 	SessionKey      string
 	SessionDir      string
 	SessionLifetime int
 	//database
-	MYSQL_DSN     string
-	MYSQL_DSN_DEV string
+	MYSQL_DSN string
+	DB        *xorm.Engine
 	//php engine
 	PHP            *php.Engine
 	PHP_WORKER_NUM int
