@@ -28,28 +28,30 @@ type ControllerType struct {
 }
 
 type ServerType struct {
-	controllers        map[string]*ControllerType
+	//MVC
+	Controllers       map[string]*ControllerType
+	DefaultController string
+	DefaultAction     string
+	//server
 	Host               string
+	WebRoot            string
 	MYSQL_DEBUG, Debug bool
 	Root, Env          string
 	LogFile            string
 	DB                 *xorm.Engine
-	SessionKey         string
-	SessionDir         string
-	SessionLifetime    int
-
-	PHP           *php.Engine
+	Charset            string
+	//session
+	SessionKey      string
+	SessionDir      string
+	SessionLifetime int
+	//database
 	MYSQL_DSN     string
 	MYSQL_DSN_DEV string
-
-	Charset string
-
-	DefaultController string
-	DefaultAction     string
-
+	//php engine
+	PHP            *php.Engine
 	PHP_WORKER_NUM int
 	PHP_CLI        string
-	PHP_TPL_DIR  string
+	PHP_TPL_DIR    string
 }
 
 func (s *ServerType) init() {
@@ -78,7 +80,7 @@ func (s *ServerType) init() {
 	if s.PHP_WORKER_NUM == 0 {
 		s.PHP_WORKER_NUM = DEFAULT_PHP_WORKER_NUM
 	}
-	
+
 	if s.PHP_TPL_DIR == "" {
 		s.PHP_TPL_DIR = s.Root + "/static/template/"
 	}
@@ -133,12 +135,12 @@ func (s *ServerType) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		actionName = path[1]
 	}
 	//Invoke the request handler
-	c, ok := s.controllers[strings.ToLower(controllerName)]
+	c, ok := s.Controllers[strings.ToLower(controllerName)]
 	if !ok {
 		NotFound(resp, "<h1>Http 404</h1><hr>Not Found Controller: "+controllerName)
 		return
 	}
-	m, ok := s.controllers[strings.ToLower(controllerName)].Methods[actionName]
+	m, ok := s.Controllers[strings.ToLower(controllerName)].Methods[actionName]
 	if !ok {
 		NotFound(resp, fmt.Sprintf("<h1>Http 404</h1><hr>Not Found Action: %s->%s\n", controllerName, actionName))
 		return
@@ -182,7 +184,7 @@ func (s *ServerType) Static(path, dir string) {
 
 func (s *ServerType) Controller(c interface{}) {
 	once.Do(func() {
-		Server.controllers = make(map[string]*ControllerType, 10)
+		Server.Controllers = make(map[string]*ControllerType, 10)
 	})
 
 	t := reflect.TypeOf(c)
@@ -191,7 +193,7 @@ func (s *ServerType) Controller(c interface{}) {
 
 	typeName := strings.ToLower(strings.Replace(t.String()[strings.Index(t.String(), ".")+1:], "Controller", "", 1))
 	p.SetString(typeName)
-	s.controllers[typeName] = &ControllerType{
+	s.Controllers[typeName] = &ControllerType{
 		Type:    t,
 		Value:   v,
 		Methods: ScanMethod(t),
@@ -219,11 +221,13 @@ func (s *ServerType) LoadConfig(file string) error {
 		return err
 	}
 
+	//server
 	s.Debug = conf.MustBool("server", "debug")
 	s.Host = conf.MustValue("server", "host") + ":" + conf.MustValue("server", "port")
-
+	s.WebRoot = conf.MustValue("server", "webroot")
 	s.LogFile = conf.MustValue("server", "log_file")
 
+	//database
 	s.MYSQL_DSN = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=%s",
 		conf.MustValue("database", "user"),
 		conf.MustValue("database", "password"),
@@ -231,15 +235,17 @@ func (s *ServerType) LoadConfig(file string) error {
 		conf.MustValue("database", "port"),
 		conf.MustValue("database", "db"),
 		conf.MustValue("database", "charset"))
-
+	//sql debug
 	s.MYSQL_DEBUG = conf.MustBool("database", "debug")
 
+	//php engine
 	s.PHP_WORKER_NUM = conf.MustInt("php", "worker_num")
 	//或者填写绝对路径
 	s.PHP_CLI = conf.MustValue("php", "cli")
 	//模板文件的路径
 	s.PHP_TPL_DIR = conf.MustValue("php", "tpl_dir")
 
+	//session
 	s.SessionKey = conf.MustValue("session", "key")
 	s.SessionDir = conf.MustValue("session", "dir")
 	s.SessionLifetime = conf.MustInt("session", "lifetime")
