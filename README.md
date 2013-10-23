@@ -4,6 +4,8 @@ easygo
 easygo是一个goweb框架，它的特点是使用php来渲染模板，go负责数据逻辑。
 easygo依赖php-cli，在使用前请务必确认已经安装了php-cli
 
+文档：<http://www4swoole.sinaapp.com/wiki/index/prid-3.html>
+
 安装EasyGo
 -----
 ```
