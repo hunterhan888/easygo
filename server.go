@@ -59,12 +59,8 @@ func (s *ServerType) init() {
 	if err != nil {
 		panic(err)
 	}
-	err = s.DB.SetPool(xorm.NewSimpleConnectPool())
-	if err != nil {
-		panic(err)
-	}
 	s.DB.ShowSQL = s.MYSQL_DEBUG
-
+	
 	if s.PHP_CLI == "" {
 		s.PHP_CLI = DEFAULT_PHP_CLI
 	}
@@ -76,20 +72,21 @@ func (s *ServerType) init() {
 		}
 		log.SetOutput(logFile)
 	}
-
-	if s.PHP_WORKER_NUM == 0 {
-		s.PHP_WORKER_NUM = DEFAULT_PHP_WORKER_NUM
+	
+	
+	//worker_num为0表示不启用PHP引擎
+	if s.PHP_WORKER_NUM != 0 {
+		if s.PHP_TPL_DIR == "" {
+			s.PHP_TPL_DIR = s.Root + "/static/template/"
+		}
+	
+		//php模板引擎
+		s.PHP = php.NewEngine(s.PHP_WORKER_NUM, s.PHP_CLI, s.PHP_TPL_DIR)
+		s.PHP.Init()
+	
+		go s.PHP.EngineLoop()
 	}
 
-	if s.PHP_TPL_DIR == "" {
-		s.PHP_TPL_DIR = s.Root + "/static/template/"
-	}
-
-	//php模板引擎
-	s.PHP = php.NewEngine(s.PHP_WORKER_NUM, s.PHP_CLI, s.PHP_TPL_DIR)
-	s.PHP.Init()
-
-	go s.PHP.EngineLoop()
 	go Session_CheckExpire()
 
 	//默认

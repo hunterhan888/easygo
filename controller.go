@@ -99,7 +99,6 @@ func (c *Controller) Display(tpl string, data interface{}) error {
 	return t.Execute(c.Resp, data)
 }
 
-
 func (c *Controller) Render(tpl string) {
 	c.Header("Content-Type", "text/html;charset="+Server.Charset)
 	str, err := c.tpl.Render(tpl)
