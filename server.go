@@ -73,15 +73,17 @@ func (s *ServerType) init() {
 		log.SetOutput(logFile)
 	}
 	
-	
 	//worker_num为0表示不启用PHP引擎
 	if s.PHP_WORKER_NUM != 0 {
 		if s.PHP_TPL_DIR == "" {
 			s.PHP_TPL_DIR = s.Root + "/static/template/"
 		}
-	
+		
 		//php模板引擎
 		s.PHP = php.NewEngine(s.PHP_WORKER_NUM, s.PHP_CLI, s.PHP_TPL_DIR)
+		//设置PHP的运行路径
+		s.PHP.RunDir = s.Root
+		//初始化
 		s.PHP.Init()
 	
 		go s.PHP.EngineLoop()

@@ -182,7 +182,8 @@ func (e *Engine) Init() {
 	if e.RunDir == "" {
 		e.RunDir = "/tmp"
 	}
-	e.PhpFile = e.RunDir + "/GoPHP.php" 
+	e.PhpFile = e.RunDir + "/GoPHP.php"
+	
 	err := File_put_contents(e.PhpFile, PHP_Engine_Script)
 	if err!= nil {
 		log.Fatalln("create PHP_Engine_Script fail. error=", err)
