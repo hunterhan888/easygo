@@ -8,10 +8,11 @@ easygo依赖php-cli，在使用前请务必确认已经安装了php-cli
 
 安装EasyGo
 -----
-```
+```shell
 go get github.com/go-sql-driver/mysql 
 go get github.com/lunny/xorm
 go get github.com/matyhtf/easygo/easygo
+go get github.com/Unknwon/goconfig
 ```
 
 环境配置
