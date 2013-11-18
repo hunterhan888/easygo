@@ -155,15 +155,15 @@ func (w *Worker) Run() {
 	w.Cmd = exec.Command(w.Engine.PhpCli, "-f", w.Engine.PhpFile, w.Engine.TplPath)
 	w.Stdin, err = w.Cmd.StdinPipe()
 	if err != nil {
-		log.Fatal("StdinPipe Error:", err)
+		log.Fatal("PHPEngine: StdinPipe Error:", err)
 	}
 	w.Stdout, err = w.Cmd.StdoutPipe()
 	if err != nil {
-		log.Fatal("StdoutPipe Error:", err)
+		log.Fatal("PHPEngine: StdoutPipe Error:", err)
 	}
 	err = w.Cmd.Start()
 	if err != nil {
-		log.Fatal("Start", err)
+		log.Fatal("PHPEngine: Start fail. Error: ", err)
 	}
 	go w.Wait()
 }
@@ -172,7 +172,7 @@ func (w *Worker) Wait() {
 	err := w.Cmd.Wait()
 	w.Engine.C <- w.Id
 	if err != nil {
-		log.Println("Wait Error:", err)
+		log.Println("PHPEngine: Wait Error:", err)
 	}
 }
 
@@ -186,10 +186,10 @@ func (e *Engine) Init() {
 	
 	err := File_put_contents(e.PhpFile, PHP_Engine_Script)
 	if err!= nil {
-		log.Fatalln("create PHP_Engine_Script fail. error=", err)
+		log.Fatalln("PHPEngine: Create PHP_Engine_Script fail. error=", err)
 		return
 	}
-	log.Println("PHP Engine Start.File=" + e.PhpFile)
+	log.Println("PHPEngine: Start.File=" + e.PhpFile)
 	//创建worker进程
 	for i := 0; i < e.WorkerNum; i++ {
 		w := NewWorker(e, i)

@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"runtime"
+	"path"
 	"strings"
 	"sync"
 )
@@ -36,8 +38,8 @@ type ServerType struct {
 	Host               string
 	WebRoot            string
 	MYSQL_DEBUG, Debug bool
-	Root, Env, SrcRoot string
-	LogFile            string
+	Root, LibRoot, SrcRoot string
+	LogFile, Env             string
 
 	Charset string
 	//session
@@ -54,7 +56,35 @@ type ServerType struct {
 	PHP_TPL_DIR    string
 }
 
+func NewServer() *ServerType {
+	var server *ServerType = &Server
+	
+	//运行时目录
+	server.Root, _ = os.Getwd()
+	
+	//easygo所在的目录
+	_, __gofile__, _, _ := runtime.Caller(0)
+	server.LibRoot = path.Dir(__gofile__)
+	
+	//默认为生产环境
+	if len(os.Args) > 1 {
+		server.Env = os.Args[1]
+	} else {
+		server.Env = "product"
+	}
+	ini_file := server.Root + "/static/config/" + server.Env + ".ini"
+	if php.FileExists(ini_file) {
+		server.LoadConfig(ini_file)
+		log.Println("EasyGo: Load ini file[", ini_file ,"]")
+	} else {
+		log.Fatalln("EasyGo: File not found.[", ini_file ,"]")
+		exit()
+	}
+	return server
+}
+
 func (s *ServerType) init() {
+	
 	s.DB, err = xorm.NewEngine("mysql", s.MYSQL_DSN)
 	if err != nil {
 		panic(err)
@@ -75,6 +105,7 @@ func (s *ServerType) init() {
 
 	//worker_num为0表示不启用PHP引擎
 	if s.PHP_WORKER_NUM != 0 {
+	
 		if s.PHP_TPL_DIR == "" {
 			s.PHP_TPL_DIR = s.Root + "/static/template/"
 		}
@@ -168,8 +199,9 @@ func (s *ServerType) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 }
 
 func (s *ServerType) Start() {
-	log.Println("EasyGo web application start. Bind", s.Host)
+	log.Println("EasyGo: Server is running. Bind", s.Host)
 	s.init()
+	
 	http.Handle("/", s)
 	err := http.ListenAndServe(s.Host, nil)
 	if err != nil {
