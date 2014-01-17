@@ -1,7 +1,6 @@
 package php
 
 import (
-	"syscall"
 	"strings"
 //	"strconv"
 	"os"
@@ -14,8 +13,8 @@ func Explode(sep string, data string, n int) []string {
 }
 
 func FileExists(file string) bool {
-	err := syscall.Access(file, syscall.O_RDONLY)
-	return err == nil
+	_, err := os.Stat(file)
+	return !os.IsNotExist(err)
 }
 
 func File_put_contents(outfile string, data string) error {
