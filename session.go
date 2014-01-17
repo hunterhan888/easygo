@@ -13,7 +13,6 @@ import (
 	"io/ioutil"
 	"runtime"
 //	"strings"
-	"syscall"
 )
 
 type SessionType struct {
@@ -69,8 +68,7 @@ func NewSession(req *http.Request, resp http.ResponseWriter) *SessionType {
 } 
 
 func (s *SessionType) Init() {
-	err := syscall.Access(Server.SessionDir, syscall.O_RDONLY)
-	if err != nil {
+	if !php.FileExists(Server.SessionDir) {
 		os.Mkdir(Server.SessionDir, 0755)
 	}
 }
